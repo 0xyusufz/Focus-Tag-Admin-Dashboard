@@ -3,6 +3,36 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 
+// Returns a map of uid → has_sessions (boolean) for the given UIDs.
+// Uses the get_tag_session_status SECURITY DEFINER RPC — admin-only,
+// institution-scoped, never exposes session contents.
+export async function getTagSessionStatus(
+  uids: string[],
+): Promise<Record<string, boolean>> {
+  if (uids.length === 0) return {}
+  const supabase = await createClient()
+
+  const { data, error } = await supabase.rpc('get_tag_session_status', {
+    p_uids: uids,
+  })
+
+  if (error || !data) {
+    // On any error, default to "has sessions" = true for all UIDs (safe default:
+    // shows Location Locked instead of incorrectly enabling Change Location).
+    return Object.fromEntries(uids.map((uid) => [uid, true]))
+  }
+
+  const result: Record<string, boolean> = {}
+  for (const row of data as { uid: string; has_sessions: boolean }[]) {
+    result[row.uid] = row.has_sessions
+  }
+  // Any UID not returned by the RPC is treated as locked (safe default)
+  for (const uid of uids) {
+    if (!(uid in result)) result[uid] = true
+  }
+  return result
+}
+
 export async function registerNfcTag(formData: FormData) {
   const uid = String(formData.get('uid') || '').trim().toUpperCase()
   const locationId = String(formData.get('location_id') || '').trim()
@@ -57,6 +87,22 @@ export async function reactivateNfcTag(tagId: string) {
 
   const { error } = await supabase.rpc('reactivate_nfc_tag', {
     p_tag_id: tagId,
+  })
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+
+  revalidatePath('/dashboard/nfc-tags')
+  return { success: true, error: null }
+}
+
+export async function reassignNfcTag(tagId: string, newLocationId: string) {
+  const supabase = await createClient()
+
+  const { error } = await supabase.rpc('reassign_nfc_tag', {
+    p_tag_id: tagId,
+    p_new_location_id: newLocationId,
   })
 
   if (error) {

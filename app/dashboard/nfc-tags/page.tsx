@@ -1,5 +1,25 @@
 import { createClient } from '@/utils/supabase/server'
-import { registerNfcTag, deactivateNfcTag, reactivateNfcTag } from './actions'
+import {
+  getTagSessionStatus,
+  registerNfcTag,
+  deactivateNfcTag,
+  reactivateNfcTag,
+  reassignNfcTag,
+} from './actions'
+
+// The tag row type returned by Supabase with joined location
+type TagRow = {
+  id: string
+  uid: string
+  is_active: boolean
+  created_at: string
+  // session_count is fetched separately and merged in
+  session_count?: number
+  locations:
+    | { id: string; name: string; is_active: boolean }
+    | { id: string; name: string; is_active: boolean }[]
+    | null
+}
 
 export default async function NfcTagsPage(props: {
   searchParams: Promise<{ error?: string; success?: string }>
@@ -10,18 +30,33 @@ export default async function NfcTagsPage(props: {
 
   const supabase = await createClient()
 
-  // Fetch tags with their location name via RLS (scoped to admin's institution automatically)
+  // Fetch tags with their location name (RLS-scoped to admin's institution)
   const { data: tags, error: tagsError } = await supabase
     .from('nfc_tags')
     .select('id, uid, is_active, created_at, locations(id, name, is_active)')
     .order('created_at', { ascending: false })
 
-  // Fetch active locations for the registration form dropdown (RLS-scoped)
+  // Fetch active locations for the registration/reassignment dropdowns (RLS-scoped)
   const { data: activeLocations } = await supabase
     .from('locations')
     .select('id, name')
     .eq('is_active', true)
     .order('name', { ascending: true })
+
+  // Determine which tag UIDs have historical focus_sessions.
+  // We call the get_tag_session_status SECURITY DEFINER RPC — it is admin-only,
+  // institution-scoped, and returns only {uid, has_sessions boolean}.
+  // It never exposes session contents. Admins cannot SELECT focus_sessions
+  // directly via RLS, so direct queries from the page would silently return
+  // zero rows (every tag would appear unlocked). The RPC bypasses that safely.
+  //
+  // SAFE DEFAULT: on any error the helper returns has_sessions=true for all
+  // UIDs, so the UI shows "Location Locked" rather than incorrectly enabling
+  // Change Location for a tag that may have sessions.
+  const sessionStatus: Record<string, boolean> =
+    tags && tags.length > 0
+      ? await getTagSessionStatus(tags.map((t) => t.uid))
+      : {}
 
   return (
     <div className="max-w-4xl">
@@ -71,36 +106,76 @@ export default async function NfcTagsPage(props: {
                   <th className="px-6 py-3 text-left font-medium text-gray-500">UID</th>
                   <th className="px-6 py-3 text-left font-medium text-gray-500">Location</th>
                   <th className="px-6 py-3 text-left font-medium text-gray-500">Status</th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">Action</th>
+                  <th className="px-6 py-3 text-left font-medium text-gray-500">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {tags.map((tag) => {
-                  const loc = Array.isArray(tag.locations) ? tag.locations[0] : tag.locations
+                  const loc = Array.isArray(tag.locations)
+                    ? tag.locations[0]
+                    : (tag.locations as TagRow['locations'])
+                  const locTyped = loc as { id: string; name: string; is_active: boolean } | null
+                  const hasSessions = sessionStatus[tag.uid] ?? true
+
                   return (
                     <tr key={tag.id} className={!tag.is_active ? 'bg-gray-50' : ''}>
-                      <td className={`px-6 py-4 font-mono text-xs font-medium ${!tag.is_active ? 'text-gray-400' : 'text-gray-900'}`}>
+                      {/* UID */}
+                      <td
+                        className={`px-6 py-4 font-mono text-xs font-medium ${
+                          !tag.is_active ? 'text-gray-400' : 'text-gray-900'
+                        }`}
+                      >
                         {tag.uid}
                       </td>
+
+                      {/* Location */}
                       <td className="px-6 py-4 text-gray-600">
-                        {loc?.name ?? '—'}
-                        {loc && !loc.is_active && (
+                        {locTyped?.name ?? '—'}
+                        {locTyped && !locTyped.is_active && (
                           <span className="ml-1 text-xs text-gray-400">(inactive location)</span>
                         )}
                       </td>
+
+                      {/* Status */}
                       <td className="px-6 py-4">
                         {tag.is_active ? (
-                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">Active</span>
+                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">
+                            Active
+                          </span>
                         ) : (
-                          <span className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full font-medium">Inactive</span>
+                          <span className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full font-medium">
+                            Inactive
+                          </span>
                         )}
                       </td>
+
+                      {/* Actions */}
                       <td className="px-6 py-4">
-                        {tag.is_active ? (
-                          <DeactivateTagForm tagId={tag.id} />
-                        ) : (
-                          <ReactivateTagForm tagId={tag.id} />
-                        )}
+                        <div className="flex flex-col gap-1">
+                          {/* Activate / Deactivate */}
+                          {tag.is_active ? (
+                            <DeactivateTagForm tagId={tag.id} />
+                          ) : (
+                            <ReactivateTagForm tagId={tag.id} />
+                          )}
+
+                          {/* Change Location — only for tags with zero sessions */}
+                          {tag.is_active && !hasSessions && activeLocations && activeLocations.length > 0 && (
+                            <ChangeLocationForm
+                              tagId={tag.id}
+                              currentLocationId={locTyped?.id ?? ''}
+                              activeLocations={activeLocations}
+                            />
+                          )}
+                          {tag.is_active && hasSessions && (
+                            <span
+                              className="text-xs text-gray-400 italic"
+                              title="This tag has historical focus sessions. Its location is permanently locked to preserve session history."
+                            >
+                              Location Locked (Has History)
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
@@ -114,7 +189,15 @@ export default async function NfcTagsPage(props: {
   )
 }
 
-function RegisterTagForm({ activeLocations }: { activeLocations: { id: string; name: string }[] }) {
+// ---------------------------------------------------------------------------
+// Sub-components (all use inline server actions for RSC compatibility)
+// ---------------------------------------------------------------------------
+
+function RegisterTagForm({
+  activeLocations,
+}: {
+  activeLocations: { id: string; name: string }[]
+}) {
   async function submitForm(formData: FormData) {
     'use server'
     const { redirect } = await import('next/navigation')
@@ -122,7 +205,9 @@ function RegisterTagForm({ activeLocations }: { activeLocations: { id: string; n
     if (result.success) {
       redirect('/dashboard/nfc-tags?success=registered')
     } else {
-      redirect(`/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to register')}`)
+      redirect(
+        `/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to register')}`,
+      )
     }
   }
 
@@ -180,7 +265,9 @@ function DeactivateTagForm({ tagId }: { tagId: string }) {
     if (result.success) {
       redirect('/dashboard/nfc-tags?success=deactivated')
     } else {
-      redirect(`/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to deactivate')}`)
+      redirect(
+        `/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to deactivate')}`,
+      )
     }
   }
 
@@ -205,7 +292,9 @@ function ReactivateTagForm({ tagId }: { tagId: string }) {
     if (result.success) {
       redirect('/dashboard/nfc-tags?success=reactivated')
     } else {
-      redirect(`/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to reactivate')}`)
+      redirect(
+        `/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to reactivate')}`,
+      )
     }
   }
 
@@ -217,6 +306,61 @@ function ReactivateTagForm({ tagId }: { tagId: string }) {
         title="Reactivate tag"
       >
         Reactivate
+      </button>
+    </form>
+  )
+}
+
+function ChangeLocationForm({
+  tagId,
+  currentLocationId,
+  activeLocations,
+}: {
+  tagId: string
+  currentLocationId: string
+  activeLocations: { id: string; name: string }[]
+}) {
+  // Filter out the current location from choices so admin picks a different one
+  const choices = activeLocations.filter((loc) => loc.id !== currentLocationId)
+  if (choices.length === 0) return null
+
+  async function submitReassign(formData: FormData) {
+    'use server'
+    const { redirect } = await import('next/navigation')
+    const newLocationId = String(formData.get('new_location_id') || '').trim()
+    if (!newLocationId) {
+      redirect(`/dashboard/nfc-tags?error=${encodeURIComponent('Please select a new location')}`)
+    }
+    const result = await reassignNfcTag(tagId, newLocationId)
+    if (result.success) {
+      redirect('/dashboard/nfc-tags?success=reassigned')
+    } else {
+      redirect(
+        `/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to change location')}`,
+      )
+    }
+  }
+
+  return (
+    <form action={submitReassign} className="flex items-center gap-1 mt-1">
+      <select
+        name="new_location_id"
+        required
+        className="rounded border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
+      >
+        <option value="">Move to…</option>
+        {choices.map((loc) => (
+          <option key={loc.id} value={loc.id}>
+            {loc.name}
+          </option>
+        ))}
+      </select>
+      <button
+        type="submit"
+        className="text-blue-600 hover:text-blue-800 text-xs font-medium whitespace-nowrap"
+        title="Change location (only allowed before first scan)"
+      >
+        Change Location
       </button>
     </form>
   )
