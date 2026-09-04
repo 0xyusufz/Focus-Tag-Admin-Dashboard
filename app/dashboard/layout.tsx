@@ -57,9 +57,9 @@ export default async function DashboardLayout({
           <Link href="/dashboard/teachers" className="block px-4 py-2 text-sm rounded hover:bg-gray-100">
             Teachers
           </Link>
-          <div className="block px-4 py-2 text-sm text-gray-400 cursor-not-allowed">
-            Classes (Coming Soon)
-          </div>
+          <Link href="/dashboard/classes" className="block px-4 py-2 text-sm rounded hover:bg-gray-100">
+            Classes
+          </Link>
           <Link href="/dashboard/locations" className="block px-4 py-2 text-sm rounded hover:bg-gray-100">
             Locations
           </Link>
