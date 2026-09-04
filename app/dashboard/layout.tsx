@@ -63,9 +63,9 @@ export default async function DashboardLayout({
           <Link href="/dashboard/locations" className="block px-4 py-2 text-sm rounded hover:bg-gray-100">
             Locations
           </Link>
-          <div className="block px-4 py-2 text-sm text-gray-400 cursor-not-allowed">
-            NFC Tags (Coming Soon)
-          </div>
+          <Link href="/dashboard/nfc-tags" className="block px-4 py-2 text-sm rounded hover:bg-gray-100">
+            NFC Tags
+          </Link>
         </nav>
         
         <div className="p-4 border-t">

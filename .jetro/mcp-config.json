@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "jetro": {
+      "command": "/Users/mdyusuffatah/.jetro/runtime/node-darwin-arm64",
+      "args": [
+        "/Users/mdyusuffatah/.jetro/mcp-server/index.js"
+      ],
+      "env": {
+        "JET_WORKSPACE": "/Users/mdyusuffatah/Desktop/Focus Tag Dashboard",
+        "JET_API_URL": "https://api.jetro.ai",
+        "PATH": "/Users/mdyusuffatah/.jetro/runtime:/Users/mdyusuffatah/.strix/bin:/Users/mdyusuffatah/.opencode/bin:/Users/mdyusuffatah/Library/Android/sdk/platform-tools:/opt/anaconda3/condabin:/Users/mdyusuffatah/.nvm/versions/node/v22.18.0/bin:/Users/mdyusuffatah/.bun/bin:/usr/local/mysql/bin:/Users/mdyusuffatah/gaianet/bin:/Users/mdyusuffatah/.foundry/bin:/Applications/Docker.app/Contents/Resources/bin:/Users/mdyusuffatah/.antigravity/antigravity/bin:/Users/mdyusuffatah/.antigravity-ide/antigravity-ide/bin:/Users/mdyusuffatah/.local/bin:/usr/local/mysql/bin:/Users/mdyusuffatah/.seismic/bin:/Users/mdyusuffatah/gaianet/bin:/Users/mdyusuffatah/.wasmedge/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Applications/VMware Fusion.app/Contents/Public:/Users/mdyusuffatah/.cargo/bin:/Users/mdyusuffatah/.seismic/bin:/Users/mdyusuffatah/.foundry/bin:/Users/mdyusuffatah/.drosera/bin"
+      }
+    }
+  }
+}
