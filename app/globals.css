@@ -1,26 +1,189 @@
 @import "tailwindcss";
 
+/* ============================================================
+   FOCUSTAG THEME TOKENS
+   Light mode = default  |  Dark mode = .dark on <html>
+   ============================================================ */
+
+/* Light mode tokens */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ft-bg:           #f8f9fb;
+  --ft-bg-elevated:  #ffffff;
+  --ft-bg-surface:   #f1f3f6;
+  --ft-bg-input:     #ffffff;
+
+  --ft-border:       #e2e6ed;
+  --ft-border-light: #edf0f5;
+
+  --ft-text-primary:   #0f1117;
+  --ft-text-secondary: #5a6478;
+  --ft-text-muted:     #8a95a5;
+  --ft-text-disabled:  #b0bac8;
+
+  --ft-accent:         #4f46e5;
+  --ft-accent-hover:   #4338ca;
+  --ft-accent-muted:   rgba(79, 70, 229, 0.08);
+  --ft-accent-border:  rgba(79, 70, 229, 0.2);
+
+  --ft-success-bg:     rgba(16, 185, 129, 0.08);
+  --ft-success-border: rgba(16, 185, 129, 0.2);
+  --ft-success-text:   #059669;
+
+  --ft-error-bg:     rgba(239, 68, 68, 0.08);
+  --ft-error-border: rgba(239, 68, 68, 0.2);
+  --ft-error-text:   #dc2626;
+
+  --ft-warning-bg:     rgba(245, 158, 11, 0.08);
+  --ft-warning-border: rgba(245, 158, 11, 0.2);
+  --ft-warning-text:   #d97706;
+
+  --ft-badge-active-bg:     rgba(16, 185, 129, 0.1);
+  --ft-badge-active-border: rgba(16, 185, 129, 0.25);
+  --ft-badge-active-text:   #047857;
+
+  --ft-badge-inactive-bg:     rgba(100, 116, 139, 0.1);
+  --ft-badge-inactive-border: rgba(100, 116, 139, 0.2);
+  --ft-badge-inactive-text:   #64748b;
+
+  --ft-table-header-bg: #f1f4f8;
+  --ft-table-row-hover: rgba(0, 0, 0, 0.025);
+  --ft-table-divider:   #e8ecf2;
+  --ft-table-row-muted: rgba(100, 116, 139, 0.04);
+}
+
+/* Dark mode tokens */
+.dark {
+  --ft-bg:           #0a0a0b;
+  --ft-bg-elevated:  #121214;
+  --ft-bg-surface:   #1a1a1d;
+  --ft-bg-input:     #0a0a0b;
+
+  --ft-border:       rgba(255,255,255,0.08);
+  --ft-border-light: rgba(255,255,255,0.05);
+
+  --ft-text-primary:   #f1f5f9;
+  --ft-text-secondary: #94a3b8;
+  --ft-text-muted:     #64748b;
+  --ft-text-disabled:  #475569;
+
+  --ft-accent:         #6366f1;
+  --ft-accent-hover:   #4f46e5;
+  --ft-accent-muted:   rgba(99, 102, 241, 0.1);
+  --ft-accent-border:  rgba(99, 102, 241, 0.25);
+
+  --ft-success-bg:     rgba(16, 185, 129, 0.1);
+  --ft-success-border: rgba(16, 185, 129, 0.2);
+  --ft-success-text:   #34d399;
+
+  --ft-error-bg:     rgba(239, 68, 68, 0.1);
+  --ft-error-border: rgba(239, 68, 68, 0.2);
+  --ft-error-text:   #f87171;
+
+  --ft-warning-bg:     rgba(245, 158, 11, 0.1);
+  --ft-warning-border: rgba(245, 158, 11, 0.2);
+  --ft-warning-text:   #fbbf24;
+
+  --ft-badge-active-bg:     rgba(16, 185, 129, 0.1);
+  --ft-badge-active-border: rgba(16, 185, 129, 0.2);
+  --ft-badge-active-text:   #34d399;
+
+  --ft-badge-inactive-bg:     rgba(255,255,255,0.04);
+  --ft-badge-inactive-border: rgba(255,255,255,0.08);
+  --ft-badge-inactive-text:   #64748b;
+
+  --ft-table-header-bg: #1a1a1d;
+  --ft-table-row-hover: rgba(255,255,255,0.03);
+  --ft-table-divider:   rgba(255,255,255,0.06);
+  --ft-table-row-muted: rgba(0,0,0,0.2);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ============================================================
+   SEMANTIC UTILITY CLASSES
+   Use these everywhere instead of raw Tailwind color classes
+   ============================================================ */
+
+/* Backgrounds */
+.ft-bg           { background-color: var(--ft-bg); }
+.ft-bg-elevated  { background-color: var(--ft-bg-elevated); }
+.ft-bg-surface   { background-color: var(--ft-bg-surface); }
+.ft-bg-input     { background-color: var(--ft-bg-input); }
+
+/* Borders */
+.ft-border       { border-color: var(--ft-border); }
+.ft-border-light { border-color: var(--ft-border-light); }
+
+/* Text */
+.ft-text-primary   { color: var(--ft-text-primary); }
+.ft-text-secondary { color: var(--ft-text-secondary); }
+.ft-text-muted     { color: var(--ft-text-muted); }
+.ft-text-disabled  { color: var(--ft-text-disabled); }
+
+/* Accent */
+.ft-accent        { color: var(--ft-accent); }
+.ft-bg-accent-muted { background-color: var(--ft-accent-muted); }
+.ft-border-accent   { border-color: var(--ft-accent-border); }
+
+/* Status */
+.ft-success { background-color: var(--ft-success-bg); border-color: var(--ft-success-border); color: var(--ft-success-text); }
+.ft-error   { background-color: var(--ft-error-bg);   border-color: var(--ft-error-border);   color: var(--ft-error-text); }
+.ft-warning { background-color: var(--ft-warning-bg); border-color: var(--ft-warning-border); color: var(--ft-warning-text); }
+
+/* Badges */
+.ft-badge-active   { background-color: var(--ft-badge-active-bg); border-color: var(--ft-badge-active-border); color: var(--ft-badge-active-text); }
+.ft-badge-inactive { background-color: var(--ft-badge-inactive-bg); border-color: var(--ft-badge-inactive-border); color: var(--ft-badge-inactive-text); }
+
+/* Table */
+.ft-table-header { background-color: var(--ft-table-header-bg); }
+.ft-table-divider { border-color: var(--ft-table-divider); }
+.ft-table-row-hover:hover { background-color: var(--ft-table-row-hover); }
+.ft-table-row-muted { background-color: var(--ft-table-row-muted); }
+
+/* Form inputs shared style */
+.ft-input {
+  background-color: var(--ft-bg-input);
+  border-color: var(--ft-border);
+  color: var(--ft-text-primary);
+}
+.ft-input::placeholder { color: var(--ft-text-muted); }
+.ft-input:focus {
+  outline: none;
+  border-color: var(--ft-accent);
+  box-shadow: 0 0 0 1px var(--ft-accent);
 }
 
+/* Select */
+.ft-select {
+  background-color: var(--ft-bg-input);
+  border-color: var(--ft-border);
+  color: var(--ft-text-primary);
+}
+.ft-select:focus {
+  outline: none;
+  border-color: var(--ft-accent);
+  box-shadow: 0 0 0 1px var(--ft-accent);
+}
+
+/* Body base */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--ft-bg);
+  color: var(--ft-text-primary);
+  font-family: var(--font-geist-sans, Arial, Helvetica, sans-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Smooth theme transitions */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+/* But not transforms or opacity — don't slow down everything */
+.notransition, button, a, input, select, textarea {
+  transition-property: background-color, border-color, color, opacity, transform, box-shadow;
+  transition-duration: 150ms;
 }

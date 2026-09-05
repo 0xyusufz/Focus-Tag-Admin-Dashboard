@@ -7,13 +7,11 @@ import {
   reassignNfcTag,
 } from './actions'
 
-// The tag row type returned by Supabase with joined location
 type TagRow = {
   id: string
   uid: string
   is_active: boolean
   created_at: string
-  // session_count is fetched separately and merged in
   session_count?: number
   locations:
     | { id: string; name: string; is_active: boolean }
@@ -30,57 +28,44 @@ export default async function NfcTagsPage(props: {
 
   const supabase = await createClient()
 
-  // Fetch tags with their location name (RLS-scoped to admin's institution)
   const { data: tags, error: tagsError } = await supabase
-    .from('nfc_tags')
-    .select('id, uid, is_active, created_at, locations(id, name, is_active)')
-    .order('created_at', { ascending: false })
+    .from('nfc_tags').select('id, uid, is_active, created_at, locations(id, name, is_active)').order('created_at', { ascending: false })
 
-  // Fetch active locations for the registration/reassignment dropdowns (RLS-scoped)
   const { data: activeLocations } = await supabase
-    .from('locations')
-    .select('id, name')
-    .eq('is_active', true)
-    .order('name', { ascending: true })
+    .from('locations').select('id, name').eq('is_active', true).order('name', { ascending: true })
 
-  // Determine which tag UIDs have historical focus_sessions.
-  // We call the get_tag_session_status SECURITY DEFINER RPC — it is admin-only,
-  // institution-scoped, and returns only {uid, has_sessions boolean}.
-  // It never exposes session contents. Admins cannot SELECT focus_sessions
-  // directly via RLS, so direct queries from the page would silently return
-  // zero rows (every tag would appear unlocked). The RPC bypasses that safely.
-  //
-  // SAFE DEFAULT: on any error the helper returns has_sessions=true for all
-  // UIDs, so the UI shows "Location Locked" rather than incorrectly enabling
-  // Change Location for a tag that may have sessions.
   const sessionStatus: Record<string, boolean> =
-    tags && tags.length > 0
-      ? await getTagSessionStatus(tags.map((t) => t.uid))
-      : {}
+    tags && tags.length > 0 ? await getTagSessionStatus(tags.map((t) => t.uid)) : {}
 
   return (
-    <div className="max-w-4xl">
-      <h1 className="text-3xl font-bold mb-8">NFC Tags</h1>
+    <div className="max-w-5xl">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight mb-2" style={{ color: 'var(--ft-text-primary)' }}>NFC Tags</h1>
+        <p style={{ color: 'var(--ft-text-secondary)' }}>Register and manage NFC tags for physical locations.</p>
+      </div>
 
       {actionSuccess && (
-        <div className="mb-6 p-3 bg-green-50 border border-green-200 rounded text-green-800 text-sm">
+        <div className="ft-success mb-6 border rounded-md p-4 text-sm flex items-center gap-2">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
           Tag action successful.
         </div>
       )}
       {actionError && (
-        <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded text-red-800 text-sm">
+        <div className="ft-error mb-6 border rounded-md p-4 text-sm flex items-center gap-2">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           Action failed: {actionError}
         </div>
       )}
 
-      {/* Register Tag Form */}
+      {/* Register Tag */}
       <section className="mb-12">
-        <h2 className="text-xl font-semibold mb-4">Register Tag</h2>
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--ft-text-primary)' }}>Register Tag</h2>
+        <div className="rounded-xl border p-6 md:p-8" style={{ backgroundColor: 'var(--ft-bg-elevated)', borderColor: 'var(--ft-border)' }}>
           {!activeLocations || activeLocations.length === 0 ? (
-            <p className="text-gray-500 text-sm">
-              No active locations available. Create and activate a location before registering tags.
-            </p>
+            <div className="ft-warning flex items-start gap-2 border rounded-md p-4">
+              <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              <p className="text-sm">No active locations available. Create and activate a location before registering tags.</p>
+            </div>
           ) : (
             <RegisterTagForm activeLocations={activeLocations} />
           )}
@@ -89,90 +74,69 @@ export default async function NfcTagsPage(props: {
 
       {/* Tags Table */}
       <section>
-        <h2 className="text-xl font-semibold mb-4">Registered Tags</h2>
+        <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--ft-text-primary)' }}>Registered Tags</h2>
         {tagsError && (
-          <p className="text-red-600 text-sm mb-4">
-            Error loading tags: {tagsError.message}
-          </p>
+          <div className="ft-error mb-4 border rounded-md p-4 text-sm">Error loading tags: {tagsError.message}</div>
         )}
         {!tagsError && (!tags || tags.length === 0) && (
-          <p className="text-gray-500 text-sm">No NFC tags registered yet.</p>
+          <div className="rounded-xl border p-8 text-center text-sm" style={{ backgroundColor: 'var(--ft-bg-elevated)', borderColor: 'var(--ft-border)', color: 'var(--ft-text-muted)' }}>
+            No NFC tags registered yet.
+          </div>
         )}
         {tags && tags.length > 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--ft-bg-elevated)', borderColor: 'var(--ft-border)' }}>
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead style={{ backgroundColor: 'var(--ft-table-header-bg)', borderBottom: '1px solid var(--ft-table-divider)' }}>
                 <tr>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">UID</th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">Location</th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">Status</th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">Actions</th>
+                  {['UID', 'Location', 'Status', 'Actions'].map((h) => (
+                    <th key={h} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--ft-text-muted)' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {tags.map((tag) => {
-                  const loc = Array.isArray(tag.locations)
-                    ? tag.locations[0]
-                    : (tag.locations as TagRow['locations'])
+              <tbody>
+                {tags.map((tag, i) => {
+                  const loc = Array.isArray(tag.locations) ? tag.locations[0] : (tag.locations as TagRow['locations'])
                   const locTyped = loc as { id: string; name: string; is_active: boolean } | null
                   const hasSessions = sessionStatus[tag.uid] ?? true
 
                   return (
-                    <tr key={tag.id} className={!tag.is_active ? 'bg-gray-50' : ''}>
-                      {/* UID */}
-                      <td
-                        className={`px-6 py-4 font-mono text-xs font-medium ${
-                          !tag.is_active ? 'text-gray-400' : 'text-gray-900'
-                        }`}
-                      >
+                    <tr
+                      key={tag.id}
+                      className="ft-table-row-hover transition-colors"
+                      style={{
+                        borderTop: i > 0 ? '1px solid var(--ft-table-divider)' : undefined,
+                        backgroundColor: !tag.is_active ? 'var(--ft-table-row-muted)' : undefined,
+                      }}
+                    >
+                      <td className="px-6 py-4 font-mono text-xs font-medium" style={{ color: tag.is_active ? 'var(--ft-text-primary)' : 'var(--ft-text-disabled)' }}>
                         {tag.uid}
                       </td>
-
-                      {/* Location */}
-                      <td className="px-6 py-4 text-gray-600">
+                      <td className="px-6 py-4" style={{ color: 'var(--ft-text-secondary)' }}>
                         {locTyped?.name ?? '—'}
                         {locTyped && !locTyped.is_active && (
-                          <span className="ml-1 text-xs text-gray-400">(inactive location)</span>
+                          <span className="ml-2 text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'var(--ft-text-disabled)' }}>(inactive)</span>
                         )}
                       </td>
-
-                      {/* Status */}
                       <td className="px-6 py-4">
-                        {tag.is_active ? (
-                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full font-medium">
-                            Inactive
-                          </span>
-                        )}
+                        <span className="px-2.5 py-1 text-[10px] uppercase tracking-wider rounded-full font-semibold border"
+                          style={tag.is_active ? {
+                            backgroundColor: 'var(--ft-badge-active-bg)', borderColor: 'var(--ft-badge-active-border)', color: 'var(--ft-badge-active-text)',
+                          } : {
+                            backgroundColor: 'var(--ft-badge-inactive-bg)', borderColor: 'var(--ft-badge-inactive-border)', color: 'var(--ft-badge-inactive-text)',
+                          }}>
+                          {tag.is_active ? 'Active' : 'Inactive'}
+                        </span>
                       </td>
-
-                      {/* Actions */}
                       <td className="px-6 py-4">
-                        <div className="flex flex-col gap-1">
-                          {/* Activate / Deactivate */}
-                          {tag.is_active ? (
-                            <DeactivateTagForm tagId={tag.id} />
-                          ) : (
-                            <ReactivateTagForm tagId={tag.id} />
-                          )}
-
-                          {/* Change Location — only for tags with zero sessions */}
+                        <div className="flex flex-col gap-2">
+                          {tag.is_active ? <DeactivateTagForm tagId={tag.id} /> : <ReactivateTagForm tagId={tag.id} />}
                           {tag.is_active && !hasSessions && activeLocations && activeLocations.length > 0 && (
-                            <ChangeLocationForm
-                              tagId={tag.id}
-                              currentLocationId={locTyped?.id ?? ''}
-                              activeLocations={activeLocations}
-                            />
+                            <ChangeLocationForm tagId={tag.id} currentLocationId={locTyped?.id ?? ''} activeLocations={activeLocations} />
                           )}
                           {tag.is_active && hasSessions && (
-                            <span
-                              className="text-xs text-gray-400 italic"
-                              title="This tag has historical focus sessions. Its location is permanently locked to preserve session history."
-                            >
-                              Location Locked (Has History)
+                            <span className="text-xs italic" style={{ color: 'var(--ft-text-muted)' }}
+                              title="This tag has historical focus sessions. Its location is permanently locked.">
+                              Location Locked
                             </span>
                           )}
                         </div>
@@ -189,68 +153,38 @@ export default async function NfcTagsPage(props: {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Sub-components (all use inline server actions for RSC compatibility)
-// ---------------------------------------------------------------------------
-
-function RegisterTagForm({
-  activeLocations,
-}: {
-  activeLocations: { id: string; name: string }[]
-}) {
+function RegisterTagForm({ activeLocations }: { activeLocations: { id: string; name: string }[] }) {
   async function submitForm(formData: FormData) {
     'use server'
     const { redirect } = await import('next/navigation')
     const result = await registerNfcTag(formData)
-    if (result.success) {
-      redirect('/dashboard/nfc-tags?success=registered')
-    } else {
-      redirect(
-        `/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to register')}`,
-      )
-    }
+    if (result.success) { redirect('/dashboard/nfc-tags?success=registered') }
+    else { redirect(`/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to register')}`) }
   }
 
   return (
-    <form action={submitForm} className="flex flex-col sm:flex-row gap-4">
-      <div className="flex-1">
-        <label htmlFor="uid" className="block text-xs font-medium text-gray-700 mb-1">
-          Tag UID
-        </label>
-        <input
-          id="uid"
-          name="uid"
-          type="text"
-          placeholder="e.g. 1D:FF:7C:1C:1A:10:80"
-          required
-          maxLength={29}
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+    <form action={submitForm} className="flex flex-col sm:flex-row gap-4 items-end">
+      <div className="flex-1 w-full">
+        <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--ft-text-muted)' }}>Tag UID</label>
+        <input name="uid" type="text" placeholder="e.g. 1D:FF:7C:1C:1A:10:80" required maxLength={29}
+          className="ft-input w-full rounded-md border px-4 py-2.5 text-sm font-mono uppercase transition-all"
+          style={{ backgroundColor: 'var(--ft-bg-input)', borderColor: 'var(--ft-border)', color: 'var(--ft-text-primary)' }} />
       </div>
       <div className="w-full sm:w-56">
-        <label htmlFor="location_id" className="block text-xs font-medium text-gray-700 mb-1">
-          Location
-        </label>
-        <select
-          id="location_id"
-          name="location_id"
-          required
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
+        <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--ft-text-muted)' }}>Location</label>
+        <select name="location_id" required
+          className="ft-select w-full rounded-md border px-4 py-2.5 text-sm transition-all"
+          style={{ backgroundColor: 'var(--ft-bg-input)', borderColor: 'var(--ft-border)', color: 'var(--ft-text-primary)' }}>
           <option value="">Select location…</option>
-          {activeLocations.map((loc) => (
-            <option key={loc.id} value={loc.id}>
-              {loc.name}
-            </option>
-          ))}
+          {activeLocations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
         </select>
       </div>
-      <div className="flex items-end">
-        <button
-          type="submit"
-          className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded text-sm hover:bg-blue-700 font-medium"
+      <div className="w-full sm:w-auto">
+        <button type="submit"
+          className="w-full px-6 py-2.5 rounded-md text-sm font-medium text-white transition-all focus:outline-none focus:ring-2 hover:bg-[var(--ft-accent-hover)]"
+          style={{ backgroundColor: 'var(--ft-accent)' }}
         >
-          Register
+          Register Tag
         </button>
       </div>
     </form>
@@ -262,22 +196,13 @@ function DeactivateTagForm({ tagId }: { tagId: string }) {
     'use server'
     const { redirect } = await import('next/navigation')
     const result = await deactivateNfcTag(tagId)
-    if (result.success) {
-      redirect('/dashboard/nfc-tags?success=deactivated')
-    } else {
-      redirect(
-        `/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to deactivate')}`,
-      )
-    }
+    if (result.success) { redirect('/dashboard/nfc-tags?success=deactivated') }
+    else { redirect(`/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to deactivate')}`) }
   }
-
   return (
     <form action={deactivate}>
-      <button
-        type="submit"
-        className="text-red-600 hover:text-red-800 text-xs font-medium"
-        title="Deactivate tag"
-      >
+      <button type="submit" className="px-3 py-1.5 rounded text-xs font-medium transition-colors w-24 text-left"
+        style={{ backgroundColor: 'var(--ft-error-bg)', color: 'var(--ft-error-text)' }}>
         Deactivate
       </button>
     </form>
@@ -289,78 +214,47 @@ function ReactivateTagForm({ tagId }: { tagId: string }) {
     'use server'
     const { redirect } = await import('next/navigation')
     const result = await reactivateNfcTag(tagId)
-    if (result.success) {
-      redirect('/dashboard/nfc-tags?success=reactivated')
-    } else {
-      redirect(
-        `/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to reactivate')}`,
-      )
-    }
+    if (result.success) { redirect('/dashboard/nfc-tags?success=reactivated') }
+    else { redirect(`/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to reactivate')}`) }
   }
-
   return (
     <form action={reactivate}>
-      <button
-        type="submit"
-        className="text-green-600 hover:text-green-800 text-xs font-medium"
-        title="Reactivate tag"
-      >
+      <button type="submit" className="px-3 py-1.5 rounded text-xs font-medium transition-colors w-24 text-left"
+        style={{ backgroundColor: 'var(--ft-success-bg)', color: 'var(--ft-success-text)' }}>
         Reactivate
       </button>
     </form>
   )
 }
 
-function ChangeLocationForm({
-  tagId,
-  currentLocationId,
-  activeLocations,
-}: {
-  tagId: string
-  currentLocationId: string
-  activeLocations: { id: string; name: string }[]
+function ChangeLocationForm({ tagId, currentLocationId, activeLocations }: {
+  tagId: string; currentLocationId: string; activeLocations: { id: string; name: string }[]
 }) {
-  // Filter out the current location from choices so admin picks a different one
-  const choices = activeLocations.filter((loc) => loc.id !== currentLocationId)
+  const choices = activeLocations.filter(loc => loc.id !== currentLocationId)
   if (choices.length === 0) return null
 
   async function submitReassign(formData: FormData) {
     'use server'
     const { redirect } = await import('next/navigation')
     const newLocationId = String(formData.get('new_location_id') || '').trim()
-    if (!newLocationId) {
-      redirect(`/dashboard/nfc-tags?error=${encodeURIComponent('Please select a new location')}`)
-    }
+    if (!newLocationId) { redirect(`/dashboard/nfc-tags?error=${encodeURIComponent('Please select a new location')}`); return }
     const result = await reassignNfcTag(tagId, newLocationId)
-    if (result.success) {
-      redirect('/dashboard/nfc-tags?success=reassigned')
-    } else {
-      redirect(
-        `/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to change location')}`,
-      )
-    }
+    if (result.success) { redirect('/dashboard/nfc-tags?success=reassigned') }
+    else { redirect(`/dashboard/nfc-tags?error=${encodeURIComponent(result.error || 'Failed to change location')}`) }
   }
 
   return (
-    <form action={submitReassign} className="flex items-center gap-1 mt-1">
-      <select
-        name="new_location_id"
-        required
-        className="rounded border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400"
-      >
+    <form action={submitReassign} className="flex items-center gap-2 mt-1">
+      <select name="new_location_id" required
+        className="ft-select rounded border px-2 py-1.5 text-xs w-32 transition-all"
+        style={{ backgroundColor: 'var(--ft-bg-input)', borderColor: 'var(--ft-border)', color: 'var(--ft-text-primary)' }}>
         <option value="">Move to…</option>
-        {choices.map((loc) => (
-          <option key={loc.id} value={loc.id}>
-            {loc.name}
-          </option>
-        ))}
+        {choices.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
       </select>
-      <button
-        type="submit"
-        className="text-blue-600 hover:text-blue-800 text-xs font-medium whitespace-nowrap"
-        title="Change location (only allowed before first scan)"
-      >
-        Change Location
+      <button type="submit"
+        className="px-2.5 py-1.5 rounded text-xs font-medium whitespace-nowrap transition-colors"
+        style={{ backgroundColor: 'var(--ft-accent-muted)', borderColor: 'var(--ft-accent-border)', color: 'var(--ft-accent)', border: '1px solid' }}>
+        Move
       </button>
     </form>
   )

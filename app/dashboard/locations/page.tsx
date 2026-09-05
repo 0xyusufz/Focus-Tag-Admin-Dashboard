@@ -10,81 +10,82 @@ export default async function LocationsPage(props: {
 
   const supabase = await createClient()
 
-  // Fetch locations via normal RLS. The SELECT policy automatically scopes to the admin's institution.
   const { data: locations, error: locationsError } = await supabase
-    .from('locations')
-    .select('id, name, type, is_active, created_at')
-    .order('name', { ascending: true })
+    .from('locations').select('id, name, type, is_active, created_at').order('name', { ascending: true })
 
   return (
-    <div className="max-w-4xl">
-      <h1 className="text-3xl font-bold mb-8">Locations</h1>
+    <div className="max-w-5xl">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight mb-2" style={{ color: 'var(--ft-text-primary)' }}>Locations</h1>
+        <p style={{ color: 'var(--ft-text-secondary)' }}>Manage physical locations for classes and sessions.</p>
+      </div>
 
-      {/* Status messages via search params redirect logic would normally go here, 
-          but for simplicity in this file we'll use action forms that redirect with params if needed,
-          or use a client component for state. Since we are using standard server actions without JS, 
-          we can render errors passed in searchParams. */}
       {actionSuccess && (
-        <div className="mb-6 p-3 bg-green-50 border border-green-200 rounded text-green-800 text-sm">
+        <div className="ft-success mb-6 border rounded-md p-4 text-sm flex items-center gap-2">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
           Location action successful.
         </div>
       )}
       {actionError && (
-        <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded text-red-800 text-sm">
+        <div className="ft-error mb-6 border rounded-md p-4 text-sm flex items-center gap-2">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           Action failed: {actionError}
         </div>
       )}
 
-      {/* Add Location Form */}
       <section className="mb-12">
-        <h2 className="text-xl font-semibold mb-4">Add Location</h2>
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--ft-text-primary)' }}>Add Location</h2>
+        <div className="rounded-xl border p-6 md:p-8" style={{ backgroundColor: 'var(--ft-bg-elevated)', borderColor: 'var(--ft-border)' }}>
           <AddLocationForm />
         </div>
       </section>
 
-      {/* Current Locations */}
       <section>
-        <h2 className="text-xl font-semibold mb-4">Institution Locations</h2>
+        <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--ft-text-primary)' }}>Institution Locations</h2>
         {locationsError && (
-          <p className="text-red-600 text-sm mb-4">
-            Error loading locations: {locationsError.message}
-          </p>
+          <div className="ft-error mb-4 border rounded-md p-4 text-sm">Error loading locations: {locationsError.message}</div>
         )}
         {!locationsError && (!locations || locations.length === 0) && (
-          <p className="text-gray-500 text-sm">No locations are currently registered for this institution.</p>
+          <div className="rounded-xl border p-8 text-center text-sm" style={{ backgroundColor: 'var(--ft-bg-elevated)', borderColor: 'var(--ft-border)', color: 'var(--ft-text-muted)' }}>
+            No locations are currently registered for this institution.
+          </div>
         )}
         {locations && locations.length > 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--ft-bg-elevated)', borderColor: 'var(--ft-border)' }}>
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead style={{ backgroundColor: 'var(--ft-table-header-bg)', borderBottom: '1px solid var(--ft-table-divider)' }}>
                 <tr>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">Name</th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">Type</th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">Status</th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">Action</th>
+                  {['Name', 'Type', 'Status', 'Action'].map((h) => (
+                    <th key={h} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--ft-text-muted)' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {locations.map((loc) => (
-                  <tr key={loc.id} className={!loc.is_active ? 'bg-gray-50' : ''}>
-                    <td className={`px-6 py-4 font-medium ${!loc.is_active ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+              <tbody>
+                {locations.map((loc, i) => (
+                  <tr
+                    key={loc.id}
+                    className="ft-table-row-hover transition-colors"
+                    style={{
+                      borderTop: i > 0 ? '1px solid var(--ft-table-divider)' : undefined,
+                      backgroundColor: !loc.is_active ? 'var(--ft-table-row-muted)' : undefined,
+                    }}
+                  >
+                    <td className="px-6 py-4 font-medium" style={{ color: loc.is_active ? 'var(--ft-text-primary)' : 'var(--ft-text-disabled)', textDecoration: loc.is_active ? undefined : 'line-through' }}>
                       {loc.name}
                     </td>
-                    <td className="px-6 py-4 text-gray-600 capitalize">{loc.type}</td>
+                    <td className="px-6 py-4 capitalize" style={{ color: 'var(--ft-text-secondary)' }}>{loc.type}</td>
                     <td className="px-6 py-4">
-                      {loc.is_active ? (
-                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">Active</span>
-                      ) : (
-                        <span className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full font-medium">Inactive</span>
-                      )}
+                      <span className="px-2.5 py-1 text-[10px] uppercase tracking-wider rounded-full font-semibold border"
+                        style={loc.is_active ? {
+                          backgroundColor: 'var(--ft-badge-active-bg)', borderColor: 'var(--ft-badge-active-border)', color: 'var(--ft-badge-active-text)',
+                        } : {
+                          backgroundColor: 'var(--ft-badge-inactive-bg)', borderColor: 'var(--ft-badge-inactive-border)', color: 'var(--ft-badge-inactive-text)',
+                        }}>
+                        {loc.is_active ? 'Active' : 'Inactive'}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
-                      {loc.is_active ? (
-                        <DeactivateForm locationId={loc.id} />
-                      ) : (
-                        <ReactivateForm locationId={loc.id} />
-                      )}
+                      {loc.is_active ? <DeactivateForm locationId={loc.id} /> : <ReactivateForm locationId={loc.id} />}
                     </td>
                   </tr>
                 ))}
@@ -102,45 +103,33 @@ function AddLocationForm() {
     'use server'
     const { redirect } = await import('next/navigation')
     const result = await createLocation(formData)
-    if (result.success) {
-      redirect('/dashboard/locations?success=created')
-    } else {
-      redirect(`/dashboard/locations?error=${encodeURIComponent(result.error || 'Failed to create')}`)
-    }
+    if (result.success) { redirect('/dashboard/locations?success=created') }
+    else { redirect(`/dashboard/locations?error=${encodeURIComponent(result.error || 'Failed to create')}`) }
   }
 
   return (
     <form action={submitForm} className="flex flex-col sm:flex-row gap-4">
       <div className="flex-1">
-        <label htmlFor="name" className="block text-xs font-medium text-gray-700 mb-1">Location Name</label>
-        <input
-          id="name"
-          name="name"
-          type="text"
-          placeholder="e.g. Room 101"
-          required
-          maxLength={100}
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--ft-text-muted)' }}>Location Name</label>
+        <input name="name" type="text" placeholder="e.g. Room 101" required maxLength={100}
+          className="ft-input w-full rounded-md border px-4 py-2.5 text-sm transition-all"
+          style={{ backgroundColor: 'var(--ft-bg-input)', borderColor: 'var(--ft-border)', color: 'var(--ft-text-primary)' }} />
       </div>
       <div className="w-full sm:w-48">
-        <label htmlFor="type" className="block text-xs font-medium text-gray-700 mb-1">Type</label>
-        <select
-          id="type"
-          name="type"
-          required
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
+        <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--ft-text-muted)' }}>Type</label>
+        <select name="type" required
+          className="ft-select w-full rounded-md border px-4 py-2.5 text-sm transition-all"
+          style={{ backgroundColor: 'var(--ft-bg-input)', borderColor: 'var(--ft-border)', color: 'var(--ft-text-primary)' }}>
           <option value="classroom">Classroom</option>
           <option value="library">Library</option>
         </select>
       </div>
       <div className="flex items-end">
-        <button
-          type="submit"
-          className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded text-sm hover:bg-blue-700 font-medium"
+        <button type="submit"
+          className="w-full sm:w-auto px-6 py-2.5 rounded-md text-sm font-medium text-white transition-all focus:outline-none focus:ring-2 hover:bg-[var(--ft-accent-hover)]"
+          style={{ backgroundColor: 'var(--ft-accent)' }}
         >
-          Add
+          Add Location
         </button>
       </div>
     </form>
@@ -152,20 +141,13 @@ function DeactivateForm({ locationId }: { locationId: string }) {
     'use server'
     const { redirect } = await import('next/navigation')
     const result = await deactivateLocation(locationId)
-    if (result.success) {
-      redirect('/dashboard/locations?success=deactivated')
-    } else {
-      redirect(`/dashboard/locations?error=${encodeURIComponent(result.error || 'Failed to deactivate')}`)
-    }
+    if (result.success) { redirect('/dashboard/locations?success=deactivated') }
+    else { redirect(`/dashboard/locations?error=${encodeURIComponent(result.error || 'Failed to deactivate')}`) }
   }
-
   return (
     <form action={deactivate}>
-      <button
-        type="submit"
-        className="text-red-600 hover:text-red-800 text-xs font-medium"
-        title="Deactivate location"
-      >
+      <button type="submit" className="px-3 py-1.5 rounded text-xs font-medium transition-colors"
+        style={{ backgroundColor: 'var(--ft-error-bg)', color: 'var(--ft-error-text)' }}>
         Deactivate
       </button>
     </form>
@@ -177,20 +159,13 @@ function ReactivateForm({ locationId }: { locationId: string }) {
     'use server'
     const { redirect } = await import('next/navigation')
     const result = await reactivateLocation(locationId)
-    if (result.success) {
-      redirect('/dashboard/locations?success=reactivated')
-    } else {
-      redirect(`/dashboard/locations?error=${encodeURIComponent(result.error || 'Failed to reactivate')}`)
-    }
+    if (result.success) { redirect('/dashboard/locations?success=reactivated') }
+    else { redirect(`/dashboard/locations?error=${encodeURIComponent(result.error || 'Failed to reactivate')}`) }
   }
-
   return (
     <form action={reactivate}>
-      <button
-        type="submit"
-        className="text-green-600 hover:text-green-800 text-xs font-medium"
-        title="Reactivate location"
-      >
+      <button type="submit" className="px-3 py-1.5 rounded text-xs font-medium transition-colors"
+        style={{ backgroundColor: 'var(--ft-success-bg)', color: 'var(--ft-success-text)' }}>
         Reactivate
       </button>
     </form>

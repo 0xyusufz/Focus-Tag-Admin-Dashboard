@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { searchUnassignedUsers, assignUserToInstitution } from '../actions'
 
 export default async function StudentSearchPage(props: {
@@ -23,75 +24,100 @@ export default async function StudentSearchPage(props: {
   return (
     <div className="max-w-4xl">
       <div className="mb-6">
-        <a href="/dashboard/students" className="text-sm text-blue-600 hover:underline">
-          ← Back to Students
-        </a>
+        <Link href="/dashboard/students" className="text-sm font-medium inline-flex items-center transition-colors hover:opacity-80" style={{ color: 'var(--ft-accent)' }}>
+          &larr; Back to Students
+        </Link>
       </div>
-      <h1 className="text-3xl font-bold mb-2">Onboard Student</h1>
-      <p className="text-sm text-gray-500 mb-6">
+      <h1 className="text-3xl font-bold mb-2 tracking-tight" style={{ color: 'var(--ft-text-primary)' }}>Onboard Student</h1>
+      <p className="text-sm mb-6" style={{ color: 'var(--ft-text-secondary)' }}>
         Search for an unassigned FocusTag account and assign them to your institution.
       </p>
 
       {/* Search form */}
-      <form action="/dashboard/students/search" className="flex gap-3 mb-6">
-        <input
-          name="q"
-          type="text"
-          defaultValue={query}
-          placeholder="Search by email prefix (min. 3 chars)"
-          minLength={3}
-          maxLength={254}
-          required
-          className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
-        >
-          Search
-        </button>
-      </form>
+      <div className="rounded-xl border p-6 md:p-8 mb-8" style={{ backgroundColor: 'var(--ft-bg-elevated)', borderColor: 'var(--ft-border)' }}>
+        <form action="/dashboard/students/search" className="flex flex-col md:flex-row gap-3 mb-6">
+          <input
+            name="q"
+            type="text"
+            defaultValue={query}
+            placeholder="Search by email prefix (min. 3 chars)"
+            minLength={3}
+            maxLength={254}
+            required
+            className="ft-input flex-1 rounded-md border px-4 py-2.5 text-sm transition-all"
+            style={{
+              backgroundColor: 'var(--ft-bg-input)',
+              borderColor: 'var(--ft-border)',
+              color: 'var(--ft-text-primary)',
+            }}
+          />
+          <button
+            type="submit"
+            className="px-6 py-2.5 rounded-md text-sm font-medium text-white transition-all focus:outline-none focus:ring-2 hover:bg-[var(--ft-accent-hover)]"
+            style={{ backgroundColor: 'var(--ft-accent)' }}
+          >
+            Search
+          </button>
+        </form>
+        <div className="flex items-start gap-3">
+          <div
+            className="mt-0.5 w-4 h-4 rounded flex items-center justify-center shrink-0 border"
+            style={{ backgroundColor: 'var(--ft-accent-muted)', borderColor: 'var(--ft-accent-border)', color: 'var(--ft-accent)' }}
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--ft-text-muted)' }}>
+            Results are fetched securely via an admin-only server-side lookup. The search term is treated as a literal prefix (wildcards are disabled).
+          </p>
+        </div>
+      </div>
 
       {/* Status messages */}
       {assignedId && !assignError && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-green-800 text-sm">
+        <div className="ft-success mb-6 border rounded-md p-4 text-sm flex items-center gap-2">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
           User successfully assigned to your institution.
         </div>
       )}
       {assignError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-800 text-sm">
+        <div className="ft-error mb-6 border rounded-md p-4 text-sm flex items-center gap-2">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           Assignment failed: {assignError}
         </div>
       )}
       {searchError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-800 text-sm">
+        <div className="ft-error mb-6 border rounded-md p-4 text-sm flex items-center gap-2">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           Search error: {searchError}
         </div>
       )}
 
       {/* Results */}
       {query.length >= 3 && !searchError && (
-        <>
+        <section>
+          <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--ft-text-primary)' }}>Search Results</h2>
           {results.length === 0 ? (
-            <p className="text-gray-500 text-sm">
+            <div className="rounded-xl border p-8 text-center text-sm" style={{ backgroundColor: 'var(--ft-bg-elevated)', borderColor: 'var(--ft-border)', color: 'var(--ft-text-muted)' }}>
               No unassigned students found matching &quot;{query}&quot;.
-            </p>
+            </div>
           ) : (
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--ft-bg-elevated)', borderColor: 'var(--ft-border)' }}>
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead style={{ backgroundColor: 'var(--ft-table-header-bg)', borderBottom: '1px solid var(--ft-table-divider)' }}>
                   <tr>
-                    <th className="px-6 py-3 text-left font-medium text-gray-500">Name</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-500">Email</th>
-                    <th className="px-6 py-3 text-left font-medium text-gray-500">Action</th>
+                    {['Name', 'Email', 'Action'].map((h, i) => (
+                      <th key={h} className={`px-6 py-4 text-xs font-semibold uppercase tracking-wider ${i === 2 ? 'text-right' : 'text-left'}`} style={{ color: 'var(--ft-text-muted)' }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {results.map((u) => (
-                    <tr key={u.id}>
-                      <td className="px-6 py-4 text-gray-900">{u.name || '—'}</td>
-                      <td className="px-6 py-4 text-gray-600">{u.email}</td>
-                      <td className="px-6 py-4">
+                <tbody>
+                  {results.map((u, i) => (
+                    <tr key={u.id} className="ft-table-row-hover transition-colors" style={{ borderTop: i > 0 ? '1px solid var(--ft-table-divider)' : undefined }}>
+                      <td className="px-6 py-4 font-medium" style={{ color: 'var(--ft-text-primary)' }}>{u.name || '—'}</td>
+                      <td className="px-6 py-4" style={{ color: 'var(--ft-text-secondary)' }}>{u.email}</td>
+                      <td className="px-6 py-4 text-right">
                         <AssignForm userId={u.id} searchQuery={query} />
                       </td>
                     </tr>
@@ -100,7 +126,7 @@ export default async function StudentSearchPage(props: {
               </table>
             </div>
           )}
-        </>
+        </section>
       )}
     </div>
   )
@@ -130,7 +156,11 @@ function AssignForm({ userId, searchQuery }: { userId: string; searchQuery: stri
       <input type="hidden" name="userId" value={userId} />
       <button
         type="submit"
-        className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
+        className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+        style={{
+          backgroundColor: 'var(--ft-success-bg)',
+          color: 'var(--ft-success-text)',
+        }}
       >
         Assign to Institution
       </button>

@@ -11,104 +11,105 @@ export default async function ClassesPage(props: {
 
   const supabase = await createClient()
 
-  // Fetch active locations for the form
   const { data: locationsData } = await supabase
-    .from('locations')
-    .select('id, name')
-    .eq('is_active', true)
-    .order('name', { ascending: true })
+    .from('locations').select('id, name').eq('is_active', true).order('name', { ascending: true })
 
-  // Fetch classes with basic counts and location details
   const { data: classes, error: classesError } = await supabase
     .from('classes')
-    .select(`
-      id, 
-      name, 
-      is_active, 
-      created_at,
-      locations ( name ),
-      enrollments ( count ),
-      teacher_class_access ( count )
-    `)
+    .select('id, name, is_active, created_at, locations ( name ), enrollments ( count ), teacher_class_access ( count )')
     .order('name', { ascending: true })
 
   return (
-    <div className="max-w-5xl">
-      <h1 className="text-3xl font-bold mb-8">Classes</h1>
+    <div className="max-w-6xl">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight mb-2" style={{ color: 'var(--ft-text-primary)' }}>Classes</h1>
+        <p style={{ color: 'var(--ft-text-secondary)' }}>Manage your institution&apos;s classes, enrollments, and teacher assignments.</p>
+      </div>
 
       {actionSuccess && (
-        <div className="mb-6 p-3 bg-green-50 border border-green-200 rounded text-green-800 text-sm">
+        <div className="ft-success mb-6 border rounded-md p-4 text-sm flex items-center gap-2">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
           Class action successful.
         </div>
       )}
       {actionError && (
-        <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded text-red-800 text-sm">
+        <div className="ft-error mb-6 border rounded-md p-4 text-sm flex items-center gap-2">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           Action failed: {actionError}
         </div>
       )}
 
-      {/* Add Class Form */}
+      {/* Create Class */}
       <section className="mb-12">
-        <h2 className="text-xl font-semibold mb-4">Create Class</h2>
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--ft-text-primary)' }}>Create Class</h2>
+        <div className="rounded-xl border p-6 md:p-8" style={{ backgroundColor: 'var(--ft-bg-elevated)', borderColor: 'var(--ft-border)' }}>
           <AddClassForm locations={locationsData || []} />
         </div>
       </section>
 
-      {/* Current Classes */}
+      {/* Classes list */}
       <section>
-        <h2 className="text-xl font-semibold mb-4">Institution Classes</h2>
+        <h2 className="text-xl font-semibold mb-4" style={{ color: 'var(--ft-text-primary)' }}>Institution Classes</h2>
         {classesError && (
-          <p className="text-red-600 text-sm mb-4">
-            Error loading classes: {classesError.message}
-          </p>
+          <div className="ft-error mb-4 border rounded-md p-4 text-sm">Error loading classes: {classesError.message}</div>
         )}
         {!classesError && (!classes || classes.length === 0) && (
-          <p className="text-gray-500 text-sm">No classes are currently registered for this institution.</p>
+          <div className="rounded-xl border p-8 text-center text-sm" style={{ backgroundColor: 'var(--ft-bg-elevated)', borderColor: 'var(--ft-border)', color: 'var(--ft-text-muted)' }}>
+            No classes are currently registered for this institution.
+          </div>
         )}
         {classes && classes.length > 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="rounded-xl border overflow-hidden" style={{ backgroundColor: 'var(--ft-bg-elevated)', borderColor: 'var(--ft-border)' }}>
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead style={{ backgroundColor: 'var(--ft-table-header-bg)', borderBottom: '1px solid var(--ft-table-divider)' }}>
                 <tr>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">Name</th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">Location</th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">Teachers</th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">Students</th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">Status</th>
-                  <th className="px-6 py-3 text-left font-medium text-gray-500">Action</th>
+                  {['Name', 'Location', 'Teachers', 'Students', 'Status', 'Action'].map((h) => (
+                    <th key={h} className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--ft-text-muted)' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {classes.map((cls) => {
+              <tbody>
+                {classes.map((cls, i) => {
                   // @ts-expect-error Supabase nested types
                   const locName = cls.locations?.name || 'Unknown'
                   const teacherCount = cls.teacher_class_access?.[0]?.count || 0
                   const studentCount = cls.enrollments?.[0]?.count || 0
-
                   return (
-                    <tr key={cls.id} className={!cls.is_active ? 'bg-gray-50' : ''}>
-                      <td className={`px-6 py-4 font-medium ${!cls.is_active ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+                    <tr
+                      key={cls.id}
+                      className="ft-table-row-hover transition-colors"
+                      style={{
+                        borderTop: i > 0 ? '1px solid var(--ft-table-divider)' : undefined,
+                        backgroundColor: !cls.is_active ? 'var(--ft-table-row-muted)' : undefined,
+                      }}
+                    >
+                      <td className="px-6 py-4 font-medium" style={{ color: cls.is_active ? 'var(--ft-text-primary)' : 'var(--ft-text-disabled)', textDecoration: cls.is_active ? undefined : 'line-through' }}>
                         {cls.name}
                       </td>
-                      <td className="px-6 py-4 text-gray-600">{locName}</td>
-                      <td className="px-6 py-4 text-gray-600">{teacherCount}</td>
-                      <td className="px-6 py-4 text-gray-600">{studentCount}</td>
+                      <td className="px-6 py-4" style={{ color: 'var(--ft-text-secondary)' }}>{locName}</td>
+                      <td className="px-6 py-4" style={{ color: 'var(--ft-text-secondary)' }}>{teacherCount}</td>
+                      <td className="px-6 py-4" style={{ color: 'var(--ft-text-secondary)' }}>{studentCount}</td>
                       <td className="px-6 py-4">
-                        {cls.is_active ? (
-                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">Active</span>
-                        ) : (
-                          <span className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded-full font-medium">Inactive</span>
-                        )}
+                        <span className="px-2.5 py-1 text-[10px] uppercase tracking-wider rounded-full font-semibold border"
+                          style={cls.is_active ? {
+                            backgroundColor: 'var(--ft-badge-active-bg)', borderColor: 'var(--ft-badge-active-border)', color: 'var(--ft-badge-active-text)',
+                          } : {
+                            backgroundColor: 'var(--ft-badge-inactive-bg)', borderColor: 'var(--ft-badge-inactive-border)', color: 'var(--ft-badge-inactive-text)',
+                          }}>
+                          {cls.is_active ? 'Active' : 'Inactive'}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 flex items-center gap-3">
-                        <Link
-                          href={`/dashboard/classes/${cls.id}`}
-                          className="text-blue-600 hover:text-blue-800 text-xs font-medium"
-                        >
-                          Manage
-                        </Link>
-                        <UpdateStatusForm classId={cls.id} currentStatus={cls.is_active} />
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/dashboard/classes/${cls.id}`}
+                            className="px-3 py-1.5 rounded-md text-xs font-medium border transition-colors hover:bg-[var(--ft-accent)] hover:text-[#fff]"
+                            style={{ backgroundColor: 'var(--ft-accent-muted)', borderColor: 'var(--ft-accent-border)', color: 'var(--ft-accent)' }}
+                          >
+                            Manage
+                          </Link>
+                          <UpdateStatusForm classId={cls.id} currentStatus={cls.is_active} />
+                        </div>
                       </td>
                     </tr>
                   )
@@ -122,79 +123,65 @@ export default async function ClassesPage(props: {
   )
 }
 
-function AddClassForm({ locations }: { locations: { id: string, name: string }[] }) {
+function AddClassForm({ locations }: { locations: { id: string; name: string }[] }) {
   async function submitForm(formData: FormData) {
     'use server'
     const { redirect } = await import('next/navigation')
     const result = await createClass(formData)
-    if (result.success) {
-      redirect('/dashboard/classes?success=created')
-    } else {
-      redirect(`/dashboard/classes?error=${encodeURIComponent(result.error || 'Failed to create')}`)
-    }
+    if (result.success) { redirect('/dashboard/classes?success=created') }
+    else { redirect(`/dashboard/classes?error=${encodeURIComponent(result.error || 'Failed to create')}`) }
   }
 
   return (
     <form action={submitForm} className="flex flex-col sm:flex-row gap-4">
       <div className="flex-1">
-        <label htmlFor="name" className="block text-xs font-medium text-gray-700 mb-1">Class Name</label>
-        <input
-          id="name"
-          name="name"
-          type="text"
-          placeholder="e.g. Physics 101"
-          required
-          maxLength={100}
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--ft-text-muted)' }}>Class Name</label>
+        <input name="name" type="text" placeholder="e.g. Physics 101" required maxLength={100}
+          className="ft-input w-full rounded-md border px-4 py-2.5 text-sm transition-all"
+          style={{ backgroundColor: 'var(--ft-bg-input)', borderColor: 'var(--ft-border)', color: 'var(--ft-text-primary)' }} />
       </div>
       <div className="w-full sm:w-64">
-        <label htmlFor="location_id" className="block text-xs font-medium text-gray-700 mb-1">Location</label>
-        <select
-          id="location_id"
-          name="location_id"
-          required
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
+        <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--ft-text-muted)' }}>Location</label>
+        <select name="location_id" required
+          className="ft-select w-full rounded-md border px-4 py-2.5 text-sm transition-all"
+          style={{ backgroundColor: 'var(--ft-bg-input)', borderColor: 'var(--ft-border)', color: 'var(--ft-text-primary)' }}>
           <option value="">Select active location...</option>
-          {locations.map(loc => (
-            <option key={loc.id} value={loc.id}>{loc.name}</option>
-          ))}
+          {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
         </select>
       </div>
       <div className="flex items-end">
-        <button
-          type="submit"
-          className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded text-sm hover:bg-blue-700 font-medium"
+        <button type="submit"
+          className="w-full sm:w-auto px-6 py-2.5 rounded-md text-sm font-medium text-white transition-all focus:outline-none focus:ring-2 hover:bg-[var(--ft-accent-hover)]"
+          style={{ backgroundColor: 'var(--ft-accent)' }}
         >
-          Create
+          Create Class
         </button>
       </div>
     </form>
   )
 }
 
-function UpdateStatusForm({ classId, currentStatus }: { classId: string, currentStatus: boolean }) {
+function UpdateStatusForm({ classId, currentStatus }: { classId: string; currentStatus: boolean }) {
   async function updateStatus() {
     'use server'
     const { redirect } = await import('next/navigation')
     const result = await updateClassStatus(classId, !currentStatus)
     const action = currentStatus ? 'deactivated' : 'activated'
-    if (result.success) {
-      redirect(`/dashboard/classes?success=${action}`)
-    } else {
-      redirect(`/dashboard/classes?error=${encodeURIComponent(result.error || `Failed to ${action}`)}`)
-    }
+    if (result.success) { redirect(`/dashboard/classes?success=${action}`) }
+    else { redirect(`/dashboard/classes?error=${encodeURIComponent(result.error || `Failed to ${action}`)}`) }
   }
 
   return (
     <form action={updateStatus}>
-      <button
-        type="submit"
-        className={`${currentStatus ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'} text-xs font-medium`}
-        title={currentStatus ? "Deactivate class" : "Activate class"}
+      <button type="submit"
+        className="px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+        style={currentStatus ? {
+          backgroundColor: 'var(--ft-error-bg)', color: 'var(--ft-error-text)',
+        } : {
+          backgroundColor: 'var(--ft-success-bg)', color: 'var(--ft-success-text)',
+        }}
       >
-        {currentStatus ? "Deactivate" : "Activate"}
+        {currentStatus ? 'Deactivate' : 'Activate'}
       </button>
     </form>
   )
